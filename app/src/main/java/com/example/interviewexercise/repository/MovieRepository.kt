@@ -8,8 +8,11 @@ import com.example.interviewexercise.data.Movie
 import com.example.interviewexercise.data.toMovie
 import com.example.interviewexercise.networking.RetrofitFactory
 import com.example.interviewexercise.views.gallery.MoviePagingSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlin.coroutines.coroutineContext
 
 class MovieRepository {
     private val movieApi = RetrofitFactory.getMovieApi()
@@ -19,7 +22,7 @@ class MovieRepository {
             config = PagingConfig(
                 pageSize = NETWORK_PAGE_SIZE,
                 enablePlaceholders = false,
-                initialLoadSize = 1
+                initialLoadSize = 30
             ),
             pagingSourceFactory = {
                 MoviePagingSource(movieApi)

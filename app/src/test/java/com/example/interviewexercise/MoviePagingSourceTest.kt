@@ -34,7 +34,7 @@ class MoviePagingSourceTest {
     }
 
     @Test
-    fun loadReturnsPageWhenSuccess() = runBlockingTest {
+    fun `assert that when network call is successful and the first page is loaded, prevKey would be null and nextKey is incremented to 2`() = runBlockingTest {
         coEvery { api.getPopularMoviesAsync(any()) } returns NetworkResponse.Success(
             body = sampleResponse, null, 200
         )
@@ -55,21 +55,85 @@ class MoviePagingSourceTest {
     }
 
     @Test
-    fun loadReturnsPageWhenFailed() = runBlockingTest {
-        coEvery { api.getPopularMoviesAsync(any()) } returns NetworkResponse.NetworkError(
-            IOException("no internet")
+    fun `assert that when network call is successful and the second page is loaded, prevKey would be 1 and nextKey is incremented to 3`() = runBlockingTest {
+        coEvery { api.getPopularMoviesAsync(any()) } returns NetworkResponse.Success(
+            body = sampleResponse, null, 200
         )
-        val expectedResult =
-            PagingSource.LoadResult.Error<String, MovieResponse>(IOException("no internet"))
+        val expectedResult = PagingSource.LoadResult.Page(
+            data = sampleResponse.results!!.toList(),
+            prevKey = 1,
+            nextKey = 3
+        )
         assertEquals(
             expectedResult, moviePagingSource.load(
-                PagingSource.LoadParams.Refresh(
-                    key = 0,
+                PagingSource.LoadParams.Append(
+                    key = 2,
                     loadSize = 1,
                     placeholdersEnabled = false
                 )
             )
         )
+    }
+
+    @Test
+    fun `assert that when current page is 2 and attempt to load first page is successful, prevKey would be null and next key would be 2`() = runBlockingTest {
+        coEvery { api.getPopularMoviesAsync(any()) } returns NetworkResponse.Success(
+            body = sampleResponse, null, 200
+        )
+        val expectedResult = PagingSource.LoadResult.Page(
+            data = sampleResponse.results!!.toList(),
+            prevKey = null,
+            nextKey = 2
+        )
+        assertEquals(
+            expectedResult, moviePagingSource.load(
+                PagingSource.LoadParams.Prepend(
+                    key = 1,
+                    loadSize = 1,
+                    placeholdersEnabled = false
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `assert that when current page is 3 and attempt to load page 2 is successful, prevKey would be 1 and next key would be 3`() = runBlockingTest {
+        coEvery { api.getPopularMoviesAsync(any()) } returns NetworkResponse.Success(
+            body = sampleResponse, null, 200
+        )
+        val expectedResult = PagingSource.LoadResult.Page(
+            data = sampleResponse.results!!.toList(),
+            prevKey = 1,
+            nextKey = 3
+        )
+        assertEquals(
+            expectedResult, moviePagingSource.load(
+                PagingSource.LoadParams.Prepend(
+                    key = 2,
+                    loadSize = 1,
+                    placeholdersEnabled = false
+                )
+            )
+        )
+    }
+
+    @Test
+    fun loadReturnsPageWhenFailed() = runBlockingTest {
+        coEvery { api.getPopularMoviesAsync(any()) } returns NetworkResponse.NetworkError(
+            IOException("no internet")
+        )
+        val expectedResult =
+            PagingSource.LoadResult.Error<Any, Any>(IOException("no internet"))
+
+        val actualResult = moviePagingSource.load(
+            PagingSource.LoadParams.Append(
+                key = 1,
+                loadSize = 1,
+                placeholdersEnabled = false
+            )
+        )
+
+        assertEquals(expectedResult.throwable.message, (actualResult as PagingSource.LoadResult.Error).throwable.message)
     }
 
     companion object {

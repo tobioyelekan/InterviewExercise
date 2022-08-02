@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
+import androidx.recyclerview.widget.GridLayoutManager
 import com.example.interviewexercise.databinding.FragmentGalleryBinding
 import com.example.interviewexercise.repository.MovieRepository
 import com.example.interviewexercise.views.ViewModelProviderFactory
@@ -52,15 +53,24 @@ class GalleryFragment : Fragment() {
 
     private fun setupRecyclerView() {
         with(binding) {
-            moviesAdapter = MovieAdapter {
-                root.showMessage(it)
-            }
+            moviesAdapter = MovieAdapter { root.showMessage(it) }
+            val footerAdapter = LoadingStateAdapter { moviesAdapter.retry() }
+
             movieList.apply {
                 addItemDecoration(GridSpacingItemDecoration(2, 40, true))
-                adapter = moviesAdapter
-                    .withLoadStateFooter(
-                        footer = LoadingStateAdapter { moviesAdapter.retry() }
-                    )
+                adapter = moviesAdapter.withLoadStateFooter(footer = footerAdapter)
+                layoutManager = GridLayoutManager(requireContext(), 2)
+                    .apply {
+                        spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                            override fun getSpanSize(position: Int): Int {
+                                return if (position == moviesAdapter.itemCount && footerAdapter.itemCount > 0) {
+                                    2
+                                } else {
+                                    1
+                                }
+                            }
+                        }
+                    }
             }
 
             moviesAdapter.addLoadStateListener { loadState ->
